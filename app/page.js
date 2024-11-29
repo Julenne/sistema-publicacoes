@@ -8,15 +8,13 @@ export default function Home() {
           PubSearch
       </div>
       <label>
-        Login:
-      <input name="login" rows={1} className="w-42 p-2 m-4 border-2 border-zinc-800"/>
+      <input name="login" rows={1} placeholder="nickname" className="pl-6 drop-shadow-xl rounded-full w-42 p-2 m-4"/>
       </label>
       <label>
-        Senha:
-      <input name="senha" rows={1} className="w-42 p-2 m-4 border-2 border-zinc-800"/>
+      <input name="senha" rows={1} placeholder="senha" className="pl-6 drop-shadow-xl rounded-full w-42 p-2 m-4"/>
       </label>
-      <button name="entrar" className="w-42 bg-blue-700 px-12 py-2 rounded m-2">Entrar</button>
-      <button onClick={() => redirect('/homepage')} name="cadastrar" className="w-42 bg-blue-700 px-9 py-2 rounded m-2">Cadastrar</button>
+      <button name="entrar" className="w-42 bg-verde px-12 py-2 rounded m-2">Entrar</button>
+      <button onClick={() => redirect('/homepage')} name="cadastrar" className="hover:underline">Não possui conta? Cadastre-se!</button>
     </div>
   );
 }
