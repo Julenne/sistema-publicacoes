@@ -5,25 +5,61 @@ import { IoBookmarkOutline, IoSearch } from "react-icons/io5";
 import { FaBookOpen, FaBookmark } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
 import axios from "axios";
-import { getDados } from "../services/service";
+import { getDados, getInicioPublicacoes, getPublicacoesPorAutor, getPublicacoesPorLocal, getPublicacoesPorPalavraChave, getTotalPublicacoesPorAutor } from "../services/service";
 
 export default function Page() {
   const [dados, setDados] = useState([]);
+  const [filtro, setFiltro] = useState("Selecione");
+  const [pesquisa, setPesquisa] = useState("");
+  const [resultados, setResultados] = useState([]);
+  const [salvos, setContagem] = useState([]);
   const [activeDiv, setActiveDiv] = useState(1);
 
   useEffect(() => {
-    Promise.all([
-      api.get("/dados"),
-      api.get("/lista-palavra-chave"),
-      api.get("/total-publicacoes-autorEsp")
-    ])
-      .then(([resDados, resUsuarios, resProdutos]) => {
-        setDados(resDados.data);
-        setPalavraChave(resUsuarios.data);
-        setProdutos(resProdutos.data);
-      })
+    getDados()
+      .then((res) => setDados(res.data))
       .catch((err) => console.error("Erro ao buscar dados:", err));
+
+    const fetchSalvamentos = async (item) => {
+      try {
+        const response = await getUsuariosPorPublicacao(item.titulo);
+        setContagem(response.data.TotalSalvaram); 
+      } catch (error) {
+        console.error("Erro ao buscar total de salvamentos:", error);
+        setContagem(0);
+      }
+    };
+
+    /*if (item.id_publicacao) {
+      fetchSalvamentos(item);
+    }*/
   }, []);
+
+  const handleBuscar = async () => {
+    if (filtro !== "Selecione" && !pesquisa) {
+      alert("Por favor, insira um termo de pesquisa.");
+      return;
+    }
+
+    try {
+      let response;
+      if (filtro === "Selecione") {
+        response = await getInicioPublicacoes();
+      }
+      else if (filtro === "Palavra-chave") {
+        response = await getPublicacoesPorPalavraChave(pesquisa);
+      } else if (filtro === "Autor") {
+        response = await getPublicacoesPorAutor(pesquisa);
+      } else if (filtro === "Local") {
+        response = await getPublicacoesPorLocal(pesquisa);
+      }
+      setResultados(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar dados:", error);
+      alert("Erro ao buscar dados. Verifique a conexão com o servidor.");
+    }
+  };
+
 
   return (
     <div className="flex flex-row h-screen font-mono">
@@ -31,10 +67,10 @@ export default function Page() {
         <div className="flex justify-center flex-col flex-1">
           <div className="border-b-2 w-full text-center pb-32">
             <div className="w-full text-5xl">
-              Fulano de Tal
+              Joel Santos
             </div>
             <div className="w-full text-2xl">
-              @fulanodetal
+              @joelsantos
             </div>
           </div>
           <button className="hover:bg-gray-400" onClick={() => setActiveDiv(1)}>
@@ -61,32 +97,84 @@ export default function Page() {
             Todas as Publicações
           </div>
           <div className="flex flex-row">
-            <select name="Filtrar" className="p-3 pr-28 h-3/6 ml-2 mt-4 pb-8 w-1/5 rounded-full drop-shadow-xl bg-slate-50">
+            <select name="Filtrar"
+              className="p-3 pr-28 h-3/6 ml-2 mt-4 pb-8 w-1/5 rounded-full drop-shadow-xl bg-slate-50"
+              onChange={(e) => setFiltro(e.target.value)}>
+              <option>Selecione</option>
               <option>Palavra-chave</option>
               <option>Autor</option>
               <option>Local</option>
             </select>
-            <input name="pesquisa" rows={1} placeholder="Pesquisar" className="w-4/5 p-2 pl-5 m-4 drop-shadow-xl rounded-full" />
+            <input name="pesquisa" onChange={(e) => setPesquisa(e.target.value)} rows={1} placeholder="Pesquisar" className="w-4/5 p-2 pl-5 m-4 drop-shadow-xl rounded-full" />
+            <button onClick={handleBuscar} name="entrar" className="w-42 bg-verde px-8 rounded-full m-5">Buscar</button>
           </div>
 
           <div className="flex flex-col divide-y-2">
-            {dados.map((item, index) => (
 
-              <div key={index} className=" flex flex-row justify-between  my-4">
-                <div className="flex flex-col mx-10 p-2">
-                  <div>
-                    {item.titulo}
-                  </div>
-                  <div>
-                    {item.url_leitura}
-                  </div>
+            {resultados.length > 0 ? (
+              resultados.map((item, index) => (
+                <div key={index} className="p-4">
+                  {filtro === "Selecione" && item.titulo && <div key={index} className=" flex flex-row justify-between  my-4">
+                    <div className="flex flex-col mx-10 p-2">
+                      <div>
+                        {item.titulo}
+                      </div>
+                      <div>
+                        {item.url_leitura}
+                      </div>
+                    </div>
+                    <div className=" mx-14 pt-2 flex flex-row">
+                      <IoBookmarkOutline size="2em" />
+                      <p className="text-lg">{salvos}</p>
+                    </div>
+                  </div>}
+                  {filtro === "Palavra-chave" && item.titulo && <div key={index} className=" flex flex-row justify-between  my-4">
+                    <div className="flex flex-col mx-10 p-2">
+                      <div>
+                        {item.titulo}
+                      </div>
+                      <div>
+                        {item.url_leitura}
+                      </div>
+                    </div>
+                    <div className=" mx-14 pt-2 flex flex-row">
+                      <IoBookmarkOutline size="2em" />
+                      <p className="text-lg">{salvos}</p>
+                    </div>
+                  </div>}
+                  {filtro === "Autor" && item.titulo && <div key={index} className=" flex flex-row justify-between  my-4">
+                    <div className="flex flex-col mx-10 p-2">
+                      <div>
+                        {item.titulo}
+                      </div>
+                      <div>
+                        {item.url_leitura}
+                      </div>
+                    </div>
+                    <div className=" mx-14 pt-2 flex flex-row">
+                      <IoBookmarkOutline size="2em" />
+                      <p className="text-lg">{salvos}</p>
+                    </div>
+                  </div>}
+                  {filtro === "Local" && item.nome_local && <div key={index} className=" flex flex-row justify-between  my-4">
+                    <div className="flex flex-col mx-10 p-2">
+                      <div>
+                        {item.nome_local}
+                      </div>
+                      <div>
+                        {item.tipo_local}
+                      </div>
+                    </div>
+                    <div className=" mx-14 pt-2 flex flex-row">
+                      <IoBookmarkOutline size="2em" />
+                      <p className="text-lg">{salvos}</p>
+                    </div>
+                  </div>}
                 </div>
-                <div className=" mx-14 pt-2 flex flex-row">
-                  <IoBookmarkOutline size="2em" />
-                  <p className="text-lg">3</p>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-center">Nenhum resultado encontrado.</p>
+            )}
           </div>
         </div>
       }
