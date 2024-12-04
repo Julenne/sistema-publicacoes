@@ -5,14 +5,14 @@ import { IoBookmarkOutline, IoSearch } from "react-icons/io5";
 import { FaBookOpen, FaBookmark } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
 import axios from "axios";
-import { getDados, getInicioPublicacoes, getPublicacoesPorAutor, getPublicacoesPorLocal, getPublicacoesPorPalavraChave, getTotalPublicacoesPorAutor } from "../services/service";
+import { getDados,getUsuariosPorPublicacao, getInicioPublicacoes, getPublicacoesPorAutor, getPublicacoesPorLocal, getPublicacoesPorPalavraChave, getTotalPublicacoesPorAutor } from "../services/service";
 
 export default function Page() {
   const [dados, setDados] = useState([]);
   const [filtro, setFiltro] = useState("Selecione");
   const [pesquisa, setPesquisa] = useState("");
   const [resultados, setResultados] = useState([]);
-  const [salvos, setContagem] = useState([]);
+  const [salvamentos, setSalvamentos] = useState({});
   const [activeDiv, setActiveDiv] = useState(1);
 
   useEffect(() => {
@@ -20,20 +20,36 @@ export default function Page() {
       .then((res) => setDados(res.data))
       .catch((err) => console.error("Erro ao buscar dados:", err));
 
-    const fetchSalvamentos = async (item) => {
-      try {
-        const response = await getUsuariosPorPublicacao(item.titulo);
-        setContagem(response.data.TotalSalvaram); 
-      } catch (error) {
-        console.error("Erro ao buscar total de salvamentos:", error);
-        setContagem(0);
-      }
-    };
+    if (filtro === "Selecione") {
+      buscarInicio();
+    }
+  }, [filtro]);
 
-    /*if (item.id_publicacao) {
-      fetchSalvamentos(item);
-    }*/
-  }, []);
+  const buscarInicio = async () => {
+    try {
+      const response = await getInicioPublicacoes();
+      setResultados(response.data);
+
+      // Carregar salvamentos para cada publicação
+      const salvamentosPromises = response.data.map(async (item) => {
+        try {
+          const res = await getUsuariosPorPublicacao(item.id_publicacao);
+          return { id_publicacao: item.id_publicacao, total: res.data.total || 0 };
+        } catch {
+          return { id_publicacao: item.id_publicacao, total: 0 }; // Em caso de erro
+        }
+      });
+      
+      const salvamentosRes = await Promise.all(salvamentosPromises);
+      const salvamentosMap = salvamentosRes.reduce((acc, cur) => {
+        acc[cur.id_publicacao] = cur.total;
+        return acc;
+      }, {});
+      setSalvamentos(salvamentosMap);
+    } catch (error) {
+      console.error("Erro ao buscar dados iniciais:", error);
+    }
+  };
 
   const handleBuscar = async () => {
     if (filtro !== "Selecione" && !pesquisa) {
@@ -43,15 +59,14 @@ export default function Page() {
 
     try {
       let response;
-      if (filtro === "Selecione") {
-        response = await getInicioPublicacoes();
-      }
-      else if (filtro === "Palavra-chave") {
+      if (filtro === "Palavra-chave") {
         response = await getPublicacoesPorPalavraChave(pesquisa);
       } else if (filtro === "Autor") {
         response = await getPublicacoesPorAutor(pesquisa);
       } else if (filtro === "Local") {
         response = await getPublicacoesPorLocal(pesquisa);
+      }else if (filtro === "Salva"){
+        response = await getArtigosSalvosPorUsuario();
       }
       setResultados(response.data);
     } catch (error) {
@@ -119,13 +134,13 @@ export default function Page() {
                       <div>
                         {item.titulo}
                       </div>
-                      <div>
-                        {item.url_leitura}
+                      <div className="">
+                        <a  href={item.url_leitura}>Acessar publicação</a>
                       </div>
                     </div>
                     <div className=" mx-14 pt-2 flex flex-row">
                       <IoBookmarkOutline size="2em" />
-                      <p className="text-lg">{salvos}</p>
+                      <p className="text-lg">{salvamentos[item.id_publicacao] || 0}</p>
                     </div>
                   </div>}
                   {filtro === "Palavra-chave" && item.titulo && <div key={index} className=" flex flex-row justify-between  my-4">
@@ -134,12 +149,12 @@ export default function Page() {
                         {item.titulo}
                       </div>
                       <div>
-                        {item.url_leitura}
+                        <a href={item.url_leitura}>Acessar publicação</a>
                       </div>
                     </div>
                     <div className=" mx-14 pt-2 flex flex-row">
                       <IoBookmarkOutline size="2em" />
-                      <p className="text-lg">{salvos}</p>
+                      <p className="text-lg">{salvamentos[item.id_publicacao] || 0}</p>
                     </div>
                   </div>}
                   {filtro === "Autor" && item.titulo && <div key={index} className=" flex flex-row justify-between  my-4">
@@ -148,12 +163,12 @@ export default function Page() {
                         {item.titulo}
                       </div>
                       <div>
-                        {item.url_leitura}
+                        <a href={item.url_leitura}>Acessar publicação</a>
                       </div>
                     </div>
                     <div className=" mx-14 pt-2 flex flex-row">
                       <IoBookmarkOutline size="2em" />
-                      <p className="text-lg">{salvos}</p>
+                      <p className="text-lg">{salvamentos[item.id_publicacao] || 0}</p>
                     </div>
                   </div>}
                   {filtro === "Local" && item.nome_local && <div key={index} className=" flex flex-row justify-between  my-4">
@@ -167,7 +182,7 @@ export default function Page() {
                     </div>
                     <div className=" mx-14 pt-2 flex flex-row">
                       <IoBookmarkOutline size="2em" />
-                      <p className="text-lg">{salvos}</p>
+                      <p className="text-lg">{salvamentos[item.id_publicacao] || 0}</p>
                     </div>
                   </div>}
                 </div>
@@ -179,7 +194,7 @@ export default function Page() {
         </div>
       }
 
-      {activeDiv === 2 &&
+      {activeDiv === 2 && filtro === "Salva" &&
         <div className="basis-3/4 flex flex-col">
 
           <div className="flex justify-center text-4xl mt-4">

@@ -165,7 +165,7 @@ def artigos_salvos_usuario():
         SELECT publicacao.titulo, publicacao.id_publicacao
         FROM publicacao
         JOIN salva ON salva.id_publicacao = publicacao.id_publicacao
-        JOIN usuario ON usuario.id_usuario = salva.fk_usuario_id_usuario
+        JOIN usuario ON usuario.id_usuario = salva.id_usuario
         WHERE usuario.id_usuario = %s
     """
     cursor.execute(query, (id_usuario,))
