@@ -81,6 +81,8 @@ export default function Page() {
         response = await getTotalPublicacoesPorAutor(pesquisa.trim());
       }else if(filtro === "Último ano de publicação do autor"){
         response = await getAnoMaisRecentePorAutor(pesquisa.trim());
+      }else if(filtro === "Top Publicações"){
+        response = await getInicioPublicacoes();
       }
       setResultados(response.data);
     } catch (error) {
@@ -130,12 +132,13 @@ export default function Page() {
               className="p-3 pr-28 h-3/6 ml-2 mt-4 pb-8 w-1/5 rounded-full drop-shadow-xl bg-slate-50"
               onChange={(e) => setFiltro(e.target.value)}>
               <option>Selecione</option>
+              <option>Top Publicações</option>
               <option>Palavra-chave</option>
               <option>Autor</option>
-              <option>Local</option>
-              <option>Ranking Locais</option>
               <option>Total de Publicações do Autor</option>
               <option>Último ano de publicação do autor</option>
+              <option>Local</option>
+              <option>Ranking Locais</option>
             </select>
             <input name="pesquisa" onChange={(e) => setPesquisa(e.target.value)} rows={1} placeholder="Pesquisar" className="w-4/5 p-2 pl-5 m-4 drop-shadow-xl rounded-full" />
             <button onClick={handleBuscar} name="entrar" className="w-42 bg-verde px-8 rounded-full m-5">Buscar</button>
@@ -234,6 +237,20 @@ export default function Page() {
                       </div>
                     </div>
                     <div className=" mx-14 pt-2 flex flex-row">
+                    </div>
+                  </div>}
+                  {filtro === "Top Publicações" && item.titulo && <div key={index} className=" flex flex-row justify-between  my-4">
+                    <div className="flex flex-col mx-10 p-2">
+                      <div>
+                        {item.titulo}
+                      </div>
+                      <div>
+                        <a href={item.url_leitura}>Acessar publicação</a>
+                      </div>
+                    </div>
+                    <div className=" mx-14 pt-2 flex flex-row">
+                      <IoBookmarkOutline size="2em" />
+                      <p className="text-lg">{salvamentos[item.id_publicacao] || 0}</p>
                     </div>
                   </div>}
                 </div>

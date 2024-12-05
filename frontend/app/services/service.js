@@ -9,7 +9,7 @@ export const getPublicacoesPorPalavraChave = (palavra) =>
         params: { palavra },
     });
 
-export const getInicioPublicacoes = () =>
+export const getInicioPublicacoes = () => //foi
     api.get("/inicio");
 
 
@@ -30,7 +30,7 @@ export const getPublicacoesPorLocal = (nomeLocal) =>
         params: { nomeLocal },
     });
 
-// 5. Ano mais recente de publicação de um autor
+// 5. Ano mais recente de publicação de um autor #foi
 export const getAnoMaisRecentePorAutor = (nomeAutor) =>
     api.get("/ano-recente-autor", {
         params: { nomeAutor },

@@ -55,7 +55,7 @@ def total_publicacoes_autor():
     db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
-        SELECT COUNT(publicacao.titulo) AS ,
+        SELECT COUNT(publicacao.titulo) AS total_publicacoes
         FROM publicacao
         INNER JOIN autor_publicacao ON publicacao.id_publicacao = autor_publicacao.id_publicacao
         INNER JOIN autor ON autor_publicacao.id_autor = autor.id_autor
