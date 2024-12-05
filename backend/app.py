@@ -13,13 +13,15 @@ db = mysql.connector.connect(
     database="sistema_publicacoes",  # Seu banco de dados
     port=3306
 )
-
+db.reconnect(attempts=3, delay=5)
 # 1 - Listar todas as publicações
 @app.route('/dados', methods=['GET'])
 def obter_dados():
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     cursor.execute("SELECT * FROM publicacao limit 10")
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 # 2 - Procurar artigos que contenham a palavra-chave dita pelo usuário
@@ -29,6 +31,7 @@ def pub_palavra_chave():
     if not palavra:
         return jsonify({"error": "Parâmetro 'palavra' é obrigatório"}), 400
     
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
         SELECT * 
@@ -39,6 +42,7 @@ def pub_palavra_chave():
     """
     cursor.execute(query, (f"%{palavra}%",))
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 # 3 - Contar publicações de um autor específico
@@ -48,9 +52,10 @@ def total_publicacoes_autor():
     if not nome_autor:
         return jsonify({"error": "Parâmetro 'nomeAutor' é obrigatório"}), 400
     
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
-        SELECT COUNT(publicacao.titulo) AS total_publicacoes
+        SELECT COUNT(publicacao.titulo) AS ,
         FROM publicacao
         INNER JOIN autor_publicacao ON publicacao.id_publicacao = autor_publicacao.id_publicacao
         INNER JOIN autor ON autor_publicacao.id_autor = autor.id_autor
@@ -58,6 +63,7 @@ def total_publicacoes_autor():
     """
     cursor.execute(query, (f"%{nome_autor}%",))
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 @app.route('/inicio', methods=['GET'])
@@ -66,6 +72,7 @@ def inicio_publicacoes():
     #if not nome_autor:
     #   return jsonify({"error": "Parâmetro 'nomeAutor' é obrigatório"}), 400
     
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
                 SELECT
@@ -91,6 +98,7 @@ def inicio_publicacoes():
     """
     #cursor.execute(query, (f"%{nome_autor}%",))
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 
@@ -102,6 +110,7 @@ def publicacoes_autor():
     if not nome_autor:
         return jsonify({"error": "Parâmetro 'nomeAutor' é obrigatório"}), 400
     
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
         SELECT * 
@@ -112,6 +121,7 @@ def publicacoes_autor():
     """
     cursor.execute(query, (f"%{nome_autor}%",))
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 # 4 - Listar todas as publicações de um local
@@ -121,6 +131,7 @@ def publicacoes_por_local():
     if not nome_local:
         return jsonify({"error": "Parâmetro 'nomeLocal' é obrigatório"}), 400
     
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
         SELECT local.nome_local, local.acronimo, publicacao.titulo, publicacao.ano
@@ -130,6 +141,7 @@ def publicacoes_por_local():
     """
     cursor.execute(query, (f"%{nome_local}%",))
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 # 5 - Ano mais recente de publicação de um autor
@@ -139,6 +151,7 @@ def ano_recente_autor():
     if not nome_autor:
         return jsonify({"error": "Parâmetro 'nomeAutor' é obrigatório"}), 400
     
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
         SELECT autor.nome_autor, 
@@ -147,10 +160,11 @@ def ano_recente_autor():
                 JOIN autor_publicacao ap ON p.id_publicacao = ap.id_publicacao
                 WHERE ap.id_autor = autor.id_autor) AS ano_mais_recente
         FROM autor 
-        WHERE autor.nome_autor = %s limit 10
+        WHERE autor.nome_autor = %s
     """
     cursor.execute(query, (nome_autor,))
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 # 6 - Artigos salvos por um usuário específico
@@ -160,16 +174,18 @@ def artigos_salvos_usuario():
     if not id_usuario:
         return jsonify({"error": "Parâmetro 'idUsuario' é obrigatório"}), 400
     
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
         SELECT publicacao.titulo, publicacao.id_publicacao
         FROM publicacao
         JOIN salva ON salva.id_publicacao = publicacao.id_publicacao
         JOIN usuario ON usuario.id_usuario = salva.id_usuario
-        WHERE usuario.id_usuario = %s
+        WHERE usuario.id_usuario = %s limit 10
     """
     cursor.execute(query, (id_usuario,))
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 # 7 - Quantos usuários salvaram uma publicação
@@ -179,28 +195,31 @@ def usuarios_por_publicacao():
     if not titulo_publicacao:
         return jsonify({"error": "Parâmetro 'tituloPublicacao' é obrigatório"}), 400
     
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
         SELECT publicacao.titulo,
                (SELECT COUNT(*) 
                 FROM salva 
-                WHERE salva.fk_publicacao_id_publicacao = publicacao.id_publicacao) AS TotalSalvaram
+                WHERE salva.id_publicacao = publicacao.id_publicacao) AS TotalSalvaram
         FROM publicacao
-        WHERE publicacao.titulo LIKE %s
+        WHERE publicacao.titulo LIKE %s limit 10
     """
     cursor.execute(query, (f"%{titulo_publicacao}%",))
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 # 8 - Total de publicações salvas por local
 @app.route('/ranking-locais', methods=['GET'])
 def ranking_locais():
+    db.reconnect()
     cursor = db.cursor(dictionary=True)
     query = """
         SELECT local.nome_local, 
-               COUNT(salva.fk_publicacao_id_publicacao) AS TotalFavoritos
+               COUNT(salva.id_publicacao) AS TotalFavoritos
         FROM salva
-        JOIN publicacao ON salva.fk_publicacao_id_publicacao = publicacao.id_publicacao
+        JOIN publicacao ON salva.id_publicacao = publicacao.id_publicacao
         JOIN local ON publicacao.id_local = local.id_local
         WHERE salva.status_favorito = 'S'
         GROUP BY local.nome_local
@@ -208,6 +227,7 @@ def ranking_locais():
     """
     cursor.execute(query)
     resultados = cursor.fetchall()
+    cursor.close()
     return jsonify(resultados)
 
 if __name__ == '__main__':
